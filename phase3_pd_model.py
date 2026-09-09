@@ -3,6 +3,7 @@ import numpy as np
 from sqlalchemy import create_engine
 import statsmodels.api as sm
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler   # ADD THIS LINE
 from sklearn.metrics import roc_auc_score
 from lightgbm import LGBMClassifier
 import warnings
@@ -39,18 +40,20 @@ y = df[target_col]
 
 # Train/Test Split (80/20)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-
+scaler = StandardScaler()
+X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index)
+X_test_scaled = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns, index=X_test.index)
 print("\n" + "="*50)
 print("PHASE 3: PROBABILITY OF DEFAULT (PD) MODEL")
 print("="*50)
 
 # 3. Statsmodels Logistic Regression Baseline
 print("\nTraining Statsmodels Logistic Regression (Baseline)...")
-X_train_sm = sm.add_constant(X_train)
-X_test_sm = sm.add_constant(X_test)
+X_train_sm = sm.add_constant(X_train_scaled)
+X_test_sm = sm.add_constant(X_test_scaled)
 
 # Fit model (using bfgs to help with convergence on this specific dataset)
-logit_model = sm.Logit(y_train, X_train_sm).fit(method='bfgs', disp=0)
+logit_model = sm.Logit(y_train, X_train_sm).fit(method='bfgs', disp=0, maxiter=200)
 y_pred_prob_lr = logit_model.predict(X_test_sm)
 auc_lr = roc_auc_score(y_test, y_pred_prob_lr)
 print(f"Logistic Regression AUC: {auc_lr:.4f}")
