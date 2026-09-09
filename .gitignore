@@ -1,0 +1,20 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local databases and data files
+*.db
+*.sqlite3
+credit_default_raw.csv
+
+# Generated plots and images
+*.png
+
+# IDE specific files
+.vscode/
+.idea/
+
+# OS generated files
+Thumbs.db
+Desktop.ini
