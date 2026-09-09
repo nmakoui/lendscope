@@ -1,0 +1,78 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sqlalchemy import create_engine
+from lightgbm import LGBMClassifier
+from sklearn.calibration import calibration_curve
+import shap
+import warnings
+
+warnings.filterwarnings("ignore")
+
+print("Loading data and retraining model...")
+engine = create_engine('sqlite:///credit_risk.db')
+dim = pd.read_sql("SELECT * FROM dim_customer", engine)
+fact = pd.read_sql("SELECT * FROM fact_repayment", engine)
+
+# Reshape data
+fact_wide = fact.pivot(index='customer_id', columns='month', values=['repayment_status', 'utilisation_ratio', 'payment_ratio'])
+fact_wide.columns = [f"{col[0]}_{col[1]}" for col in fact_wide.columns]
+fact_wide.reset_index(inplace=True)
+df = pd.merge(dim, fact_wide, on='customer_id')
+
+target_col = 'default.payment.next.month'
+features = ['LIMIT_BAL', 'SEX', 'EDUCATION', 'MARRIAGE', 'AGE']
+for i in range(1, 7):
+    features.extend([f'repayment_status_{i}', f'utilisation_ratio_{i}', f'payment_ratio_{i}'])
+
+X = df[features].fillna(0)
+y = df[target_col]
+
+gbm = LGBMClassifier(n_estimators=100, learning_rate=0.05, random_state=42, verbose=-1)
+gbm.fit(X, y)
+probs = gbm.predict_proba(X)[:, 1]
+
+# 1. Calibration Check (Reliability Diagram)
+print("\nGenerating Calibration Curve (Reliability Diagram)...")
+# Split the predicted probabilities into 10 deciles
+prob_true, prob_pred = calibration_curve(y, probs, n_bins=10, strategy='quantile')
+
+plt.figure(figsize=(8, 6))
+plt.plot(prob_pred, prob_true, marker='o', linewidth=2, label='LightGBM predicted PD')
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Perfect Calibration')
+plt.title('Reliability Diagram: Predicted PD vs. Actual Default Rate', fontsize=14)
+plt.xlabel('Mean Predicted Probability of Default (PD)', fontsize=12)
+plt.ylabel('Actual Default Rate (Fraction of Positives)', fontsize=12)
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.savefig('calibration_curve.png', dpi=300)
+print("Saved 'calibration_curve.png'")
+
+# 2. SHAP Explainability for a specific decision
+print("\nGenerating SHAP Explanation for a high-risk customer...")
+explainer = shap.TreeExplainer(gbm)
+# Pick a high-risk customer to explain (e.g., the one with the highest PD)
+customer_idx = probs.argmax() 
+shap_values = explainer(X.iloc[[customer_idx]])
+
+plt.figure(figsize=(10, 6))
+shap.plots.waterfall(shap_values[0], show=False)
+plt.title(f"SHAP Decision Explanation (Customer ID: {df.iloc[customer_idx]['customer_id']})")
+plt.tight_layout()
+plt.savefig('shap_waterfall.png', dpi=300, bbox_inches='tight')
+print("Saved 'shap_waterfall.png'")
+
+# 3. Governance Caveat Output
+print("\n" + "="*70)
+print("PHASE 6 WRITE-UP: GOVERNANCE & LIMITATIONS (COPY-PASTE FOR YOUR REPORT)")
+print("="*70)
+print("HONEST LIMITATION:")
+print("This dataset is a single six-month snapshot with one outcome period, not ")
+print("multi-year data. Therefore, a true out-of-time back-test (e.g., training ")
+print("on one year, validating on the next) is not possible here. ")
+print("\nPRODUCTION REQUIREMENTS:")
+print("In a real-world production deployment, establishing a robust governance framework ")
+print("requires multi-period data and ongoing model monitoring (e.g., tracking Population ")
+print("Stability Index) to ensure the PD model does not degrade as macroeconomic conditions shift.")
+print("="*70)

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pandas
+numpy
+lightgbm
+shap
+sqlalchemy
+pydantic
+scikit-learn
