@@ -7,3 +7,7 @@ shap
 sqlalchemy
 pydantic
 scikit-learn
+scipy
+statsmodels
+matplotlib
+ucimlrepo

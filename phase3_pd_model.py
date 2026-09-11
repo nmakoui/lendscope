@@ -3,7 +3,7 @@ import numpy as np
 from sqlalchemy import create_engine
 import statsmodels.api as sm
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler   # ADD THIS LINE
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
 from lightgbm import LGBMClassifier
 import warnings

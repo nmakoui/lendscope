@@ -61,26 +61,27 @@ class CustomerData(BaseModel):
 @app.post("/predict")
 def predict(data: CustomerData):
     input_data = pd.DataFrame([data.dict()])
-    
+
     # Predict PD
     pd_val = gbm.predict_proba(input_data)[0, 1]
-    
+
     # Expected Loss (LGD = 85%, EAD = LIMIT_BAL)
+    # NOTE: LIMIT_BAL is in New Taiwan Dollars (NT$), not USD.
     el = pd_val * 0.85 * data.LIMIT_BAL
-    
+
     # SHAP Explanation (find the highest contributing feature)
     shap_vals = explainer.shap_values(input_data)
     if isinstance(shap_vals, list):
         shap_vals = shap_vals[1][0]
     else:
         shap_vals = shap_vals[0]
-        
+
     top_feature_idx = np.argmax(np.abs(shap_vals))
     top_feature = features[top_feature_idx]
-    
+
     return {
         "Probability_of_Default": f"{pd_val*100:.2f}%",
-        "Expected_Loss": f"${el:,.2f}",
+        "Expected_Loss": f"NT${el:,.2f}",
         "Decision": "Approve" if pd_val < 0.20 else "Decline",
         "Top_Risk_Driver": top_feature,
         "Driver_Impact": "Increases Risk" if shap_vals[top_feature_idx] > 0 else "Decreases Risk"

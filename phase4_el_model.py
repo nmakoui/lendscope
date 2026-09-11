@@ -39,7 +39,7 @@ print("\nCalculating Base Expected Loss (EL)...")
 df['PD_base'] = gbm.predict_proba(X)[:, 1]
 
 # ASSUMPTION: 85% LGD is a standard industry assumption for unsecured revolving credit.
-LGD = 0.85 
+LGD = 0.85
 df['EAD'] = df['LIMIT_BAL']
 
 # EL = PD * LGD * EAD
@@ -47,8 +47,10 @@ df['EL_base'] = df['PD_base'] * LGD * df['EAD']
 
 portfolio_loss_base = df['EL_base'].sum()
 total_exposure = df['EAD'].sum()
-print(f"Total Portfolio Exposure: ${total_exposure:,.2f}")
-print(f"Base Expected Loss:       ${portfolio_loss_base:,.2f} ({(portfolio_loss_base/total_exposure)*100:.2f}%)")
+# NOTE: LIMIT_BAL in this dataset is denominated in New Taiwan Dollars (NT$),
+# not USD - every monetary figure below is NT$.
+print(f"Total Portfolio Exposure: NT${total_exposure:,.2f}")
+print(f"Base Expected Loss:       NT${portfolio_loss_base:,.2f} ({(portfolio_loss_base/total_exposure)*100:.2f}%)")
 
 # 2. Stress Testing (Downturn Simulation)
 print("\nSimulating Downturn Scenario (+1 Delinquency Tier)...")
@@ -64,7 +66,18 @@ df['EL_stress'] = df['PD_stress'] * LGD * df['EAD']
 
 portfolio_loss_stress = df['EL_stress'].sum()
 
-print(f"Stress Expected Loss:     ${portfolio_loss_stress:,.2f} ({(portfolio_loss_stress/total_exposure)*100:.2f}%)")
-print(f"Total Loss Increase:      +${(portfolio_loss_stress - portfolio_loss_base):,.2f}")
+print(f"Stress Expected Loss:     NT${portfolio_loss_stress:,.2f} ({(portfolio_loss_stress/total_exposure)*100:.2f}%)")
+print(f"Total Loss Increase:      +NT${(portfolio_loss_stress - portfolio_loss_base):,.2f}")
+
+print("\n" + "-"*70)
+print("METHODOLOGY NOTE:")
+print("This model is trained and scored on the same full population (the")
+print("current live book), consistent with how a production model would be")
+print("scored operationally. It is NOT a held-out, walk-forward evaluation of")
+print("EL accuracy - Phase 3's train/test AUC split is the only true")
+print("out-of-sample generalisation check in this project. Treat the EL and")
+print("stress figures below as illustrative portfolio-level estimates, not a")
+print("validated forecast.")
+print("-"*70)
 
 print("\nPhase 4 Complete!")

@@ -29,6 +29,10 @@ def bootstrap_diff(group1, group2, n_iterations=1000):
     return np.percentile(diffs, [2.5, 97.5]), np.mean(diffs)
 
 # Features we want to hypothesis-test
+# NOTE: EDUCATION and MARRIAGE are categorical codes, not continuous quantities -
+# treating their numeric codes as a "mean difference" is a convenient shortcut,
+# not a literal average of a continuous variable. Worth a one-line caveat if
+# this goes into a report.
 features = ['pay_0', 'utilisation_ratio', 'AGE', 'EDUCATION', 'MARRIAGE']
 
 defaulters = df[df['default_flag'] == 1]

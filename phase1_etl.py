@@ -3,7 +3,7 @@ import numpy as np
 from sqlalchemy import create_engine
 
 # 1. Setup Data & Connection
-file_path = r"C:\Users\amaku\lendscope\credit_default_raw.csv"
+file_path = "credit_default_raw.csv"  # relative path - run this script from the project folder
 db_url = 'sqlite:///credit_risk.db'
 engine = create_engine(db_url)
 
@@ -51,16 +51,20 @@ fact_table = pd.concat(fact_dfs, ignore_index=True)
 print("Engineering features...")
 fact_table['utilisation_ratio'] = fact_table['bill_amt'] / fact_table['limit_bal']
 
-# Guard against division by zero 
+# Guard against division by zero
 fact_table['payment_ratio'] = np.where(
-    fact_table['bill_amt'] > 0, 
-    fact_table['pay_amt'] / fact_table['bill_amt'], 
+    fact_table['bill_amt'] > 0,
+    fact_table['pay_amt'] / fact_table['bill_amt'],
     0
 )
 fact_table.drop(columns=['limit_bal'], inplace=True)
 
-# 5. Load into PostgreSQL
-print("Pushing to PostgreSQL...")
+# 5. Load into SQLite
+# NOTE: this project uses SQLite locally (see db_url above). The tech stack
+# lists PostgreSQL/AWS RDS as the intended production target for this schema -
+# if you want that claim to hold, point db_url at a real Postgres/RDS instance
+# instead of leaving this on SQLite.
+print("Pushing to SQLite...")
 dim_customer.to_sql('dim_customer', engine, if_exists='replace', index=False)
 fact_table.to_sql('fact_repayment', engine, if_exists='replace', index=False)
 
