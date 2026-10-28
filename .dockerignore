@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.png
+*.csv
+.git/
+.github/
+key.json
