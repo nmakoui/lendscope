@@ -18,3 +18,6 @@ credit_default_raw.csv
 # OS generated files
 Thumbs.db
 Desktop.ini
+
+key.json
+.pytest_cache/
